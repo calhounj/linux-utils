@@ -5,6 +5,7 @@
 #include <errno.h>
 #include <string.h>
 #include <unistd.h>
+#include "wtmpbuf.h"
 
 #define DEFAULT_NRECS 16
 
@@ -116,6 +117,16 @@ main(int argc, char *argv[]) {
 
     /* Check that opt_b processing was successful */
     if (opt_b == -1) die(err_msg); /*This is why we initialized opt_b */
+
+    /* Initialize wtmp file and allocate memory for utbuf */
+    struct utmpx *utbuf;
+    int fd_wtmp = init_wtmp(WTMP_FILE, &utbuf, my_options.nrecs);
+
+    if (fd_wtmp != -1) printf("Testing, successful open\n");
+
+    wtmp_finalize(fd_wtmp, &utbuf);
+
+    printf("Successful de-allocating and closing\n");
 
 
     return 0;

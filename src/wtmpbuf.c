@@ -42,10 +42,18 @@ init_wtmp(const char *filename, struct utmpx **utbuf, int nrecs){
 }
 
 
-/* I am realizing now that this function doesn't return any
- * information that could be useful for error checking. Maybe I can
- * change the signature to include a char *msg for errors. Also, the
- * function would need to return -1 on failure.*/
+struct utmpx*
+get_next_utrec(struct utmpx *utbuf, int *next_ut) {
+    if (utbuf == NULL || next_ut == NULL)
+        return NULL;
+
+    if (*next_ut < 0)
+        return NULL;
+    else
+        return &utbuf[(*next_ut)--];
+}
+
+
 void
 wtmp_finalize(int fd_wtmp, struct utmpx **utbuf){
     if (utbuf != NULL && *utbuf != NULL) {
