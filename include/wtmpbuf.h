@@ -15,6 +15,11 @@ int init_wtmp(const char *filename, struct utmpx **utbuf, int nrecs);
  * buffer at index next_ut, decrementing next_ut. */
 struct utmpx *get_next_utrec(struct utmpx *utbuf, int *next_ut);
 
+/* Try to read the next nrecs utmpx structures to process from fd_utmp
+ * into the buffer utbuf starting at the beginning of the buffer.
+ * Return the number actually read, or -1 if reading failed */
+int load_buf(int fd_utmp, struct utmpx *utbuf, int nrecs);
+
 /* Free all memory used by the buffer utbuf and close the file descriptor
  * fd_wtmp. */
 void wtmp_finalize(int fd_wtmp, struct utmpx **utbuf);
