@@ -120,13 +120,29 @@ main(int argc, char *argv[]) {
 
     /* Initialize wtmp file and allocate memory for utbuf */
     struct utmpx *utbuf;
-    int fd_wtmp = init_wtmp(WTMP_FILE, &utbuf, my_options.nrecs);
+    int fd_utmp = init_wtmp(WTMP_FILE, &utbuf, my_options.nrecs);
+    if (fd_utmp == -1) die("open wtmp");
 
-    if (fd_wtmp != -1) printf("Testing, successful open\n");
+    struct utmpx *ut;
+    while (1) {
+        errno = 0; /* Needs to be set on every iteration. Sticky errno! */
+        ut = next_wtmp_rec(fd_utmp, utbuf, my_options.nrecs);
+        if (ut == NULL)
+            break;
+        printf("Record time: %lld,"
+               " Record type: %d\n", (long long)ut->ut_tv.tv_sec, ut->ut_type);
+    }
 
-    wtmp_finalize(fd_wtmp, &utbuf);
-
-    printf("Successful de-allocating and closing\n");
+    /* Check for errors */
+    if (errno == 0) {
+        wtmp_finalize(fd_utmp, &utbuf);
+        printf("Done.\n");
+    }
+    else {
+        fprintf(stderr, "%s\n", strerror(errno));
+        wtmp_finalize(fd_utmp, &utbuf);
+        exit(EXIT_FAILURE);
+    }
 
 
     return 0;

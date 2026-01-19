@@ -4,6 +4,11 @@
 
 #include <utmpx.h>
 
+/* This function returns a pointer to the next record in the wtmp
+ * file in reverse order. Returns NULL when all records are read.
+ * On error it also returns NULL and sets errno.*/
+struct utmpx *next_wtmp_rec(int fd_utmp, struct utmpx *utbuf, int nrecs);
+
 /* Open the wtmp file specified by filename, optain a file descriptor, and
  * if successful, allocate storage for a buffer *utbuf of size
  * NRECS * UTSIZE (where NRECS is the number of records supplied by a

@@ -57,9 +57,7 @@ get_next_utrec(struct utmpx *utbuf, int *next_ut) {
 int
 load_buf(int fd_utmp, struct utmpx *utbuf, int nrecs) {
 
-    if (utbuf == NULL)
-        return -1;
-    if (fd_utmp < 0 || nrecs <= 0) {
+    if (fd_utmp < 0 || utbuf == NULL || nrecs <= 0) {
         errno = EINVAL;
         return -1;
     }
@@ -84,7 +82,8 @@ load_buf(int fd_utmp, struct utmpx *utbuf, int nrecs) {
             return (int)file_end;
 
         if (file_end % utsize != 0) {
-            fprintf(stderr, "File not a multiple of struct size");
+            errno = EINVAL;
+            fprintf(stderr, "File not a multiple of struct size\n");
             return -1;
         }
 
@@ -94,8 +93,10 @@ load_buf(int fd_utmp, struct utmpx *utbuf, int nrecs) {
     }
 
     /* return 0 records read if finished */
-    if (done)
+    if (done) {
+        errno = 0;
         return 0;
+    }
 
     /* Read into the buffer */
     if (lseek(fd_utmp, next_chunk_start, SEEK_SET) == -1)
@@ -138,3 +139,37 @@ wtmp_finalize(int fd_wtmp, struct utmpx **utbuf){
     if (fd_wtmp >= 0)
         close(fd_wtmp);
 }
+
+/* The "engine" of my_last */
+struct utmpx*
+next_wtmp_rec(int fd, struct utmpx *utbuf, int nrecs) {
+    if (fd < 0 || utbuf == NULL || nrecs <= 0) {
+        errno = EINVAL;
+        return NULL;
+    }
+
+    /* Internal state */
+    static int next_ut = -1;
+    static int nloaded = 0;
+    static int initialized = 0;
+
+    /* First call */
+    if (!initialized) {
+        nloaded = load_buf(fd, utbuf, nrecs);
+        if (nloaded <= 0)
+            return NULL; /* if error, main will check errno */
+        next_ut = nloaded -1;
+        initialized = 1;
+    }
+
+    if (next_ut >= 0)
+        return get_next_utrec(utbuf, &next_ut);
+    else {
+        nloaded = load_buf(fd, utbuf, nrecs);
+        if (nloaded <= 0)
+            return NULL;
+        next_ut = nloaded -1;
+        return get_next_utrec(utbuf, &next_ut);
+    }
+}
+
