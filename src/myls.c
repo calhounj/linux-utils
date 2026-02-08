@@ -29,6 +29,7 @@ void
 listdir(DIR *dirp, int flags) {
     struct dirent *direntp;     /* Pointer to a directory entry structure */
     int done = FALSE;           /* Flag to control loop execution */
+    const char *name;           /* Name of directory or file */
 
     while (!done) {
         errno = 0;
@@ -37,8 +38,12 @@ listdir(DIR *dirp, int flags) {
             perror("readdir");
         else if (direntp == NULL)
             done = TRUE;
-        else
-            printf("    %s\n", direntp->d_name);
+        else {
+            name = direntp->d_name;
+            if ((strcmp(name, ".") != 0) && (strcmp(name, "..") != 0)) {
+                printf("    %s\n", name);
+            }
+        }
     }
     printf("\n");
 }
@@ -47,6 +52,11 @@ int
 main(int argc, char *argv[]) {
     DIR *dirp;
     int ls_flags = 0;
+
+    if (setlocale(LC_COLLATE, "") == NULL) {
+        fprintf(stderr, "setlocale failed\n");
+        exit(EXIT_FAILURE);
+    }
 
     if (argc == 1) { /* No arguments, use current working directory */
         errno = 0;
