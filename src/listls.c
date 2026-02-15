@@ -11,6 +11,7 @@
 #define _DEFAULT_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <string.h>
 #include <dirent.h>
 #include <errno.h>
@@ -22,6 +23,13 @@
 #define FALSE 0
 
 #define LIST_DIRS_FIRST 1
+#define SHOW_ALL 2
+
+void
+usage(const char *program) {
+    fprintf(stderr, "usage: %s [options ...] file1 file2 ...\n", program);
+    exit(EXIT_FAILURE);
+}
 
 /* Returns true if *direntp represents a directory, and false otherwise */
 int
@@ -115,10 +123,22 @@ listdir(DIR *dirp, int flags) {
             break;
         else {
             if ((flags & LIST_DIRS_FIRST) && !isdir(entry)) {
-                save(pos, &saved_positions);
-                continue;
+                if (flags & SHOW_ALL) {
+                    save(pos, &saved_positions);
+                    continue;
+                }
+                else if (entry->d_name[0] != '.') {
+                    save(pos, &saved_positions);
+                    continue;
+                }
             }
-            printf("%s/\n", entry->d_name);
+            if (flags & SHOW_ALL) {
+                printf("%s/\n", entry->d_name);
+            }
+            else {
+                if (entry->d_name[0] != '.')
+                    printf("%s/\n", entry->d_name);
+            }
         }
     }
     if (flags & LIST_DIRS_FIRST)
@@ -130,9 +150,30 @@ int
 main(int argc, char *argv[]) {
     DIR *dirp;
     int i;
-    int ls_flags = LIST_DIRS_FIRST;
+    char *options = ":a";
+    int show_all = 0;
 
-    if (argc == 1) {        /* Use current directory */
+    while (1) {
+        int ch = getopt(argc, argv, options);
+        if (ch == -1)
+            break;
+        switch (ch) {
+        case 'a':
+            show_all = SHOW_ALL;
+            break;
+        case ':':
+            fprintf(stderr, "Missing option argument\n");
+            usage(argv[0]);
+            break;
+        default:
+            usage(argv[0]);
+            break;
+        }
+    }
+
+    int ls_flags = (LIST_DIRS_FIRST | show_all);
+
+    if (argc == optind) {        /* Use current directory */
         errno = 0;
         dirp = opendir(".");
         if (dirp == NULL)
@@ -141,7 +182,7 @@ main(int argc, char *argv[]) {
             listdir(dirp, ls_flags);
     }
     else {
-        for (i = 1; i < argc; i++) {
+        for (i = optind; i < argc; i++) {
             errno = 0;
             if ((dirp = opendir(argv[i])) == NULL) {
                 if (errno == ENOTDIR)
