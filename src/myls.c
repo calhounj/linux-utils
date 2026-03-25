@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <locale.h>
 
 
 #define TRUE 1
@@ -20,6 +21,16 @@ static void
 error_message(int errnum, const char *name) {
     fprintf(stderr, "opendir error: %s: %s", name, strerror(errnum));
 }
+
+/* Comparator function for qsort */
+static int
+cmp_strcoll(const void *a, const void *b)
+{
+    const char * const *sa = a;
+    const char * const *sb = b;
+    return strcoll(*sa, *sb);
+}
+
 
 /* listdir(dirp, flag) is from Weiss. This function prints the filenames
  * in the directory stream dirp, one per line, including . and .., in the
